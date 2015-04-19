@@ -8,7 +8,7 @@ fn main() {
     println!("Initing GLFW");
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).ok().expect("Failed to init glfw.");
     
-    glfw.window_hint(glfw::WindowHint::ContextVersion(4, 1));
+    glfw.window_hint(glfw::WindowHint::ContextVersion(3, 2));
     glfw.window_hint(glfw::WindowHint::OpenglForwardCompat(true));
     glfw.window_hint(glfw::WindowHint::OpenglProfile(glfw::OpenGlProfileHint::Core));
     
