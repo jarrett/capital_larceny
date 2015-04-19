@@ -4,5 +4,8 @@ name = "capital_larceny"
 version = "0.0.1"
 authors = ["Miranda <mirandaseitzmcleese@gmail.com>", "Jarrett <jarrettcolby@gmail.com>"]
 
-[dependencies.piston2d-graphics]
-git = "https://github.com/PistonDevelopers/graphics"
+[dependencies.gl]
+git = "https://github.com/bjz/gl-rs"
+
+[dependencies.glfw]
+git = "https://github.com/bjz/glfw-rs.git"
