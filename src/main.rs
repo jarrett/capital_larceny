@@ -11,12 +11,17 @@ mod macros;
 mod glutil;
 mod tile;
 mod camera;
+mod gen;
+mod world;
 
 use std::path::Path;
+use std::cell::RefCell;
+use std::rc::Rc;
 use glfw::{Context, Key, Action};
 use image::RgbImage;
 use cgmath::Vector2;
 
+use world::World;
 use tile::Chunk;
 use camera::Camera;
 
@@ -25,8 +30,8 @@ fn main() {
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).ok().expect("Failed to init glfw.");
     
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 2));
-    glfw.window_hint(glfw::WindowHint::OpenglForwardCompat(true));
-    glfw.window_hint(glfw::WindowHint::OpenglProfile(glfw::OpenGlProfileHint::Core));
+    glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
+    glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
     
     println!("Creating window.");
     let (mut window, events) = glfw.create_window(
@@ -54,11 +59,15 @@ fn main() {
     println!("Loading tile program");
     let tile_program = tile::Program::new();
     
-    println!("Loading test image");
+    let mut world = World::new(&tile_program);
+    
+    /*println!("Loading test image");
     let image_buf: RgbImage = image::open(&Path::new("assets/maps/test-map.png")).unwrap().to_rgb();
     let (img_w, img_h) = image_buf.dimensions();
     println!("Image w: {}, image h: {}", img_w, img_h);
-    let chunk = Chunk::from_image_buffer(&tile_program, 0, 0, &image_buf, 0, 0);
+    let chunk = Chunk::from_image_buffer(&tile_program, 0, 0, &image_buf, 0, 0);*/
+    //let chunk = Chunk::blank(&tile_program, 0, 0);
+    //world.chunks[0].push(Rc::new(RefCell::new(chunk)));
     
     println!("Starting main loop");
     while !window.should_close() {
@@ -69,7 +78,11 @@ fn main() {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
         
-        chunk.draw(&tile_program, &camera);
+        for chunks in world.chunks.iter() {
+            for chunk in chunks.iter() {
+                chunk.borrow().draw(&tile_program, &camera);
+            }
+        }
         
         window.swap_buffers();
         
@@ -79,11 +92,11 @@ fn main() {
         // Pan camera with W and S.
         if window.get_key(Key::W) == Action::Press {
             let zoom = camera.zoom();
-            camera.translate(Vector2::new(0.0, -20.0 / zoom));
+            camera.translate(Vector2::new(0.0, 20.0 / zoom));
         }
         if window.get_key(Key::S) == Action::Press {
             let zoom = camera.zoom();
-            camera.translate(Vector2::new(0.0, 20.0 / zoom));
+            camera.translate(Vector2::new(0.0, -20.0 / zoom));
         }
         
         // Pan camera with A and D.

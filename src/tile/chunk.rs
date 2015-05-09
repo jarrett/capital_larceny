@@ -1,5 +1,6 @@
 use std::ptr;
 use std::mem;
+use std::default::Default;
 use image::{Pixel, RgbImage};
 use gl;
 use gl::types::*;
@@ -9,9 +10,11 @@ use super::Tile;
 use super::Program;
 use camera::Camera;
 
+pub const SIZE: usize = 20;
+
 pub struct Chunk {
-    min_x:           u32,
-    min_y:           u32,
+    min_x:           usize,
+    min_y:           usize,
     
     tiles:           Vec<Tile>,
     
@@ -25,10 +28,10 @@ pub struct Chunk {
 
 // 32 x 32 tiles.
 impl Chunk {
-    pub fn new(program: &Program, min_x: u32, min_y: u32) -> Chunk {
+    pub fn new(program: &Program, min_x: usize, min_y: usize) -> Chunk {
         let mut chunk = Chunk {
             min_x: min_x, min_y: min_y,
-            tiles: Vec::with_capacity(1024),
+            tiles: Vec::with_capacity(SIZE * SIZE),
             vao: 0, position_buffer: 0, color_buffer: 0, index_buffer: 0, index_count: 0
         };
         
@@ -44,19 +47,33 @@ impl Chunk {
         chunk
     }
     
+    // Warning: This doesn't buffer to the GPU. Call buffer yourself on the returned chunk.
+    pub fn blank(program: &Program, min_x: usize, min_y: usize) -> Chunk {
+        let mut chunk = Chunk::new(program, min_x, min_y);
+        
+        for _ in 0..SIZE {
+            for _ in 0..SIZE {
+                chunk.tiles.push(Default::default());
+            }
+        }
+        
+        chunk
+    }
+    
+    #[allow(dead_code)]
     pub fn from_image_buffer(
         program: &Program,
-        chunk_min_x: u32, chunk_min_y: u32,
+        chunk_min_x: usize, chunk_min_y: usize,
         image_buf: &RgbImage,
-        img_min_x: u32, img_min_y: u32
+        img_min_x: usize, img_min_y: usize
     ) -> Chunk {
         let mut chunk = Chunk::new(program, chunk_min_x, chunk_min_y);
         
-        let img_max_x = img_min_x + 32;
-        let img_max_y = img_min_y + 32;
+        let img_max_x = img_min_x + SIZE;
+        let img_max_y = img_min_y + SIZE;
         for y in img_min_y..img_max_y {
           for x in img_min_x..img_max_x {
-              let (r, g, b, _) = image_buf.get_pixel(x, y).channels4();
+              let (r, g, b, _) = image_buf.get_pixel(x as u32, y as u32).channels4();
               let tile = Tile::from_rgb(r, g, b);
               chunk.tiles.push(tile);
           }
@@ -68,16 +85,17 @@ impl Chunk {
     }
     
     pub fn buffer(&mut self) {
+        let chunk_size_sq = SIZE * SIZE;
         // 32 tiles x 32 tiles x 4 vertices x 2 floats.
-        let mut positions: Vec<f32> = Vec::with_capacity(8192);
+        let mut positions: Vec<f32> = Vec::with_capacity(8 * chunk_size_sq);
         // 32 tiles x 32 tiles x 4 vertices x 3 floats.
-        let mut colors: Vec<f32> = Vec::with_capacity(12288);
+        let mut colors: Vec<f32> = Vec::with_capacity(12 * chunk_size_sq);
         // 32 tiles x 32 tiles x 6 indices.
-        let mut indices: Vec<u16> = Vec::with_capacity(6144);
+        let mut indices: Vec<u16> = Vec::with_capacity(6 * chunk_size_sq);
         
-        for y in 0u32..32u32 {
-            for x in 0u32..32u32 {
-                let tile = &self.tiles[(y * 32 + x) as usize];
+        for y in 0..SIZE {
+            for x in 0..SIZE {
+                let tile = &self.tiles[(y * SIZE + x)];
                 tile.buffer(
                     &mut positions, &mut colors, &mut indices,
                     x + self.min_x, y + self.min_y
@@ -145,5 +163,11 @@ impl Chunk {
             gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0);
             gl::BindVertexArray(0);
         }
+    }
+    
+    pub fn replace_tile(&mut self, x: usize, y: usize, tile: Tile) {
+        let rel_x = x - self.min_x;
+        let rel_y = y - self.min_y;
+        self.tiles[rel_y * SIZE + rel_x] = tile;
     }
 }

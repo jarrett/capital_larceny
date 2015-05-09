@@ -30,8 +30,8 @@ impl Camera {
         self.projection = ortho(
             self.width  as f32 / (-1f32 * self.zoom),    // Left.
             self.width  as f32 /          self.zoom ,    // Right.
-            self.height as f32 / (-1f32 * self.zoom),    // Bottom.
-            self.height as f32 /          self.zoom ,    // Top.
+            self.height as f32 /          self.zoom ,    // Bottom.
+            self.height as f32 / (-1f32 * self.zoom),    // Top.
             1f32, -1f32                                  // Near, far.
         );
     }

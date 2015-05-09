@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::default::Default;
 
 use self::Tile::*;
 use self::WallTileType::*;
@@ -7,21 +8,44 @@ use self::FloorTileType::*;
 
 // Tiles.
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Tile {
     WallTile(WallTileType),
     FloorTile(FloorTileType, OptOccupant)
 }
 
+#[derive(Debug, Clone)]
+pub enum WallTileType {
+    BrickWall
+}
+
+#[derive(Debug, Clone)]
+pub enum FloorTileType {
+    ConcreteFloor,
+    AsphaltFloor,
+    GrassFloor
+}
+
+// Occupants of tiles.
+
+type OptOccupant = Option<Rc<RefCell<Occupant>>>;
+
+#[derive(Debug)]
+pub enum Occupant {
+    //MacGuffin
+}
+
 impl Tile {
     pub fn from_rgb(r: u8, g: u8, b: u8) -> Tile {
-        match b {
-            1 => { WallTile(BrickWall) }
-            _ => { FloorTile(ConcreteFloor, None) }
+        match (r, g, b) {
+            (255, 255, 255) => { WallTile(BrickWall) },
+            (0,   0,   0  ) => { FloorTile(AsphaltFloor, None) },
+            (128, 128, 128) => { FloorTile(ConcreteFloor, None) },
+            _               => { FloorTile(GrassFloor, None) }
         }
     }
     
-    pub fn buffer(&self, positions: &mut Vec<f32>, colors: &mut Vec<f32>, indices: &mut Vec<u16>, x: u32, y: u32) {
+    pub fn buffer(&self, positions: &mut Vec<f32>, colors: &mut Vec<f32>, indices: &mut Vec<u16>, x: usize, y: usize) {
         let o: u16 = positions.len() as u16 / 2;
         
         positions.push_all(&[
@@ -37,8 +61,10 @@ impl Tile {
         ]);
         
         let (r, g, b) = match *self {
-            WallTile(_)       => { (1.0, 1.0, 1.0) },
-            FloorTile(_, _)   => { (0.0, 0.0, 0.0) }
+            WallTile(_)                 => { (1.00,  1.00,  1.00) },
+            FloorTile(AsphaltFloor, _)  => { (0.10,  0.10,  0.10) },
+            FloorTile(GrassFloor, _)    => { (0.09,  0.37,  0.18) }
+            FloorTile(ConcreteFloor, _) => { (0.50,  0.50,  0.50) }
         };
                 
         for _ in 0u8..4u8 {
@@ -47,21 +73,6 @@ impl Tile {
     }
 }
 
-#[derive(Debug)]
-pub enum WallTileType {
-    BrickWall
-}
-
-#[derive(Debug)]
-pub enum FloorTileType {
-    ConcreteFloor
-}
-
-// Occupants of tiles.
-
-type OptOccupant = Option<Rc<RefCell<Occupant>>>;
-
-#[derive(Debug)]
-pub enum Occupant {
-    //MacGuffin
+impl Default for Tile {
+    fn default() -> Tile { FloorTile(GrassFloor, None) }
 }

@@ -1,7 +1,7 @@
 mod tile;
-mod chunk;
+pub mod chunk;
 mod program;
 
-pub use self::tile::Tile;
+pub use self::tile::{Tile, FloorTileType, WallTileType};
 pub use self::program::Program;
 pub use self::chunk::Chunk;
